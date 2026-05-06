@@ -8,12 +8,20 @@ const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Alignm
 const app = express();
 const PORT = 2048;
 const DATA_FILE = path.join(__dirname, 'data', 'data.json');
+const CACHE_FILE = path.join(__dirname, 'data', 'cache.json');
 
+// Create directories
 fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 fs.mkdirSync(path.join(__dirname, 'public', 'uploads'), { recursive: true });
 
+// Initialize data file if not exists
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify({ modules: [], tasks: [], steps: [] }, null, 2));
+}
+
+// Initialize cache file if not exists
+if (!fs.existsSync(CACHE_FILE)) {
+  fs.writeFileSync(CACHE_FILE, JSON.stringify({}, null, 2));
 }
 
 app.use(express.json());
@@ -28,6 +36,27 @@ const upload = multer({ storage });
 
 function readData() { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
 function writeData(data) { fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2)); }
+
+// Cache functions
+function readCache() { 
+  try {
+    return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function writeCache(cache) { 
+  fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+}
+
+// Get cache key for a date using local date components
+function getCacheKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 app.get('/api/data', (req, res) => res.json(readData()));
 app.post('/api/data', (req, res) => { writeData(req.body); res.json({ ok: true }); });
@@ -44,20 +73,88 @@ function fmtLong(d) {
   return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
 }
 
-// ── Fetch a single day from the kuzyak.in per-day endpoint ────────────────
-// Response shape: { isWorkingDay: bool, isShortDay: bool, holiday: string|null, ... }
+// ── Fetch a single day from cache or API (synchronous per day) ─────────────
 async function fetchDay(date) {
+  const cacheKey = getCacheKey(date);
+  const cache = readCache();
+  
+  // Check if we have cached data for this date
+  if (cache[cacheKey]) {
+    console.log(`Cache hit for ${cacheKey}`);
+    return cache[cacheKey];
+  }
+  
+  // If not in cache, fetch from API
   const y = date.getFullYear();
   const m = date.getMonth() + 1;
   const day = date.getDate();
+  
   try {
+    console.log(`Fetching from API for ${cacheKey} (${y}-${m}-${day})`);
     const r = await fetch(`https://calendar.kuzyak.in/api/calendar/${y}/${m}/${day}`);
     if (!r.ok) return null;
-    return await r.json(); // { isWorkingDay, isShortDay, holiday, ... }
-  } catch {
+    
+    const data = await r.json();
+    
+    // Store in cache (simple write, no race condition because we process sequentially)
+    const updatedCache = readCache();
+    updatedCache[cacheKey] = data;
+    writeCache(updatedCache);
+    
+    return data;
+  } catch (error) {
+    console.error(`Error fetching ${cacheKey}:`, error.message);
     return null;
   }
 }
+
+// ── Fetch multiple days sequentially (no race conditions) ─────────────────
+async function fetchDaysSequentially(dates) {
+  const results = [];
+  for (let i = 0; i < dates.length; i++) {
+    const result = await fetchDay(dates[i]);
+    results.push(result);
+  }
+  return results;
+}
+
+// Optional: Clear cache endpoint (for debugging/administration)
+app.delete('/api/cache', (req, res) => {
+  writeCache({});
+  res.json({ ok: true, message: 'Cache cleared' });
+});
+
+// Optional: Get cache stats
+app.get('/api/cache/stats', (req, res) => {
+  const cache = readCache();
+  const cacheSize = Object.keys(cache).length;
+  res.json({ cacheSize, keys: Object.keys(cache) });
+});
+
+// Optional: Preload cache for a date range
+app.post('/api/cache/preload', async (req, res) => {
+  const { startDate, endDate } = req.body;
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'startDate and endDate required' });
+  }
+  
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const dates = [];
+  
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    dates.push(new Date(d));
+  }
+  
+  console.log(`Preloading cache for ${dates.length} dates sequentially...`);
+  const results = await fetchDaysSequentially(dates);
+  
+  res.json({ 
+    ok: true, 
+    preloaded: results.filter(r => r !== null).length,
+    total: dates.length 
+  });
+});
 
 // ── Core: fetch per-day data and compute smart working range ───────────────
 // Each day in returned `days` array has:
@@ -78,8 +175,8 @@ async function computeWeekRange(offsetWeeks) {
     return d;
   });
 
-  // Fetch all 5 days in parallel
-  const apiResults = await Promise.all(weekDays.map(fetchDay));
+  // Fetch all 5 days SEQUENTIALLY to avoid race conditions
+  const apiResults = await fetchDaysSequentially(weekDays);
 
   // Annotate each day with clean fields
   const days = weekDays.map((d, i) => {
@@ -140,11 +237,9 @@ app.post('/api/export', async (req, res) => {
     const nextWeekTasks = tasks.filter(t => t.column === 'next-week');
     const getModuleName = id => (modules.find(m => m.id === id) || {}).name || '';
 
-    // Compute smart ranges in parallel
-    const [curWeek, nxtWeek] = await Promise.all([
-      computeWeekRange(periodOffset),
-      computeWeekRange(periodOffset + 1),
-    ]);
+    // Compute smart ranges SEQUENTIALLY to avoid race conditions
+    const curWeek = await computeWeekRange(periodOffset);
+    const nxtWeek = await computeWeekRange(periodOffset + 1);
 
     const font = 'Times New Roman';
     const CONTENT_W = 9355;
