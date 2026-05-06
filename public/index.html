@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task Board — Weekly Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #ffda6a;
+      --secondary-color: #e2e2e2;
+      --text-color: #333;
+      --light-text: #fff;
+      --dark-bg: #2d2d2d;
+      --board-bg: #1a1a1a;
+      --col-bg: #242424;
+      --col-header-h: 52px;
+      --card-bg: #2e2e2e;
+      --card-border: #3a3a3a;
+      --accent: #ffda6a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--board-bg);
+      color: var(--light-text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    h1,h2,h3,h4,h5,.syne { font-family: 'Syne', sans-serif; }
+
+    /* TOPBAR */
+    #topbar {
+      background: var(--dark-bg);
+      border-bottom: 1px solid #3a3a3a;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    #topbar .brand {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--accent);
+      letter-spacing: -.5px;
+    }
+    #topbar .brand span { color: #fff; }
+
+    .btn-accent {
+      background: var(--accent);
+      color: var(--dark-bg);
+      border: none;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: .85rem;
+      padding: 8px 18px;
+      border-radius: 8px;
+      transition: all .2s;
+    }
+    .btn-accent:hover { background: #ffe99a; color: var(--dark-bg); }
+    .btn-outline-accent {
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: .85rem;
+      padding: 7px 16px;
+      border-radius: 8px;
+      transition: all .2s;
+    }
+    .btn-outline-accent:hover { background: var(--accent); color: var(--dark-bg); }
+
+    /* BOARD */
+    #board-wrapper {
+      display: flex;
+      gap: 16px;
+      padding: 20px 20px 30px;
+      overflow-x: auto;
+      min-height: calc(100vh - 60px);
+      align-items: flex-start;
+    }
+    .column {
+      flex: 0 0 300px;
+      width: 300px;
+      background: var(--col-bg);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 100px);
+    }
+    .col-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #333;
+    }
+    .col-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: .9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .col-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+    }
+    .col-count {
+      font-size: .75rem;
+      background: #3a3a3a;
+      padding: 2px 8px;
+      border-radius: 20px;
+      color: #aaa;
+    }
+    .col-body {
+      padding: 12px 10px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 300px;
+    }
+    .col-body.drag-over {
+      background: rgba(255,218,106,.06);
+      border-radius: 10px;
+    }
+
+    /* TASK CARD */
+    .task-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 13px 14px;
+      cursor: grab;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+      user-select: none;
+      position: relative;
+    }
+    .task-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.4); border-color: #555; }
+    .task-card.dragging { opacity: .5; transform: rotate(2deg); }
+    .task-card .card-module-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: .7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-bottom: 7px;
+      opacity: .9;
+      font-family: 'Syne', sans-serif;
+    }
+    .task-card .card-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: .9rem;
+      color: #f0f0f0;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .task-card .card-desc {
+      font-size: .78rem;
+      color: #999;
+      margin-bottom: 8px;
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .task-card .card-desc p { margin: 0; }
+    .task-card .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .task-card .card-deadline {
+      font-size: .72rem;
+      color: #888;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .task-card .card-steps-bar {
+      flex: 1;
+      height: 4px;
+      background: #3a3a3a;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .task-card .card-steps-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+      transition: width .3s;
+    }
+    .task-card .card-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: none;
+      gap: 4px;
+    }
+    .task-card:hover .card-actions { display: flex; }
+    .task-card .card-actions button {
+      background: #3a3a3a;
+      border: none;
+      color: #bbb;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .task-card .card-actions button:hover { background: #555; color: #fff; }
+    .task-card .card-actions .del-btn:hover { background: #7a2020; color: #f88; }
+
+    .add-card-btn {
+      width: 100%;
+      background: transparent;
+      border: 1.5px dashed #3a3a3a;
+      color: #666;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: .8rem;
+      cursor: pointer;
+      transition: all .2s;
+      margin-top: 2px;
+    }
+    .add-card-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(255,218,106,.04); }
+
+    /* MODAL */
+    .modal-content {
+      background: #272727;
+      border: 1px solid #3a3a3a;
+      border-radius: 16px;
+      color: #f0f0f0;
+    }
+    .modal-header {
+      border-bottom: 1px solid #3a3a3a;
+      padding: 18px 24px;
+    }
+    .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; }
+    .modal-footer { border-top: 1px solid #3a3a3a; padding: 14px 24px; }
+    .form-label {
+      font-size: .8rem;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+      font-family: 'Syne', sans-serif;
+    }
+    .form-control, .form-select {
+      background: #1e1e1e;
+      border: 1px solid #3a3a3a;
+      color: #f0f0f0;
+      border-radius: 8px;
+      font-size: .88rem;
+    }
+    .form-control:focus, .form-select:focus {
+      background: #1e1e1e;
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255,218,106,.15);
+    }
+    .form-control::placeholder { color: #555; }
+    .form-select option { background: #2a2a2a; }
+
+    /* Steps manager */
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: #1e1e1e;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      border: 1px solid #333;
+    }
+    .step-item input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+    .step-item .step-name { flex: 1; font-size: .85rem; }
+    .step-item .del-step { background: none; border: none; color: #666; cursor: pointer; padding: 2px; font-size: .85rem; }
+    .step-item .del-step:hover { color: #f88; }
+
+    /* Image preview */
+    .image-preview-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .image-preview-item {
+      position: relative;
+      width: 80px; height: 80px;
+    }
+    .image-preview-item img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #3a3a3a;
+    }
+    .image-preview-item .remove-img {
+      position: absolute;
+      top: -5px; right: -5px;
+      background: #c0392b;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 18px; height: 18px;
+      font-size: .6rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Mail links */
+    .mail-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #1e1e1e;
+      border: 1px solid #3a3a3a;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .78rem;
+      color: #a0c4ff;
+      margin: 3px;
+    }
+    .mail-tag .rm { background: none; border: none; color: #666; cursor: pointer; padding: 0; font-size: .7rem; }
+    .mail-tag .rm:hover { color: #f88; }
+
+    /* Modules sidebar */
+    #modules-panel {
+      position: fixed;
+      right: -340px;
+      top: 60px;
+      width: 320px;
+      height: calc(100vh - 60px);
+      background: #202020;
+      border-left: 1px solid #333;
+      z-index: 200;
+      transition: right .3s ease;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    #modules-panel.open { right: 0; }
+    .module-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #2a2a2a;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border: 1px solid #333;
+    }
+    .module-color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .module-name { font-size: .88rem; font-weight: 600; flex: 1; font-family: 'Syne', sans-serif; }
+
+    /* Export modal */
+    #export-info-area { font-size: .85rem; color: #aaa; }
+
+    /* Toast */
+    #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+    .toast-msg {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-left: 3px solid var(--accent);
+      color: #f0f0f0;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: .85rem;
+      margin-top: 8px;
+      animation: slideIn .2s ease;
+    }
+    @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    .col-ready .col-dot { background: #4ade80; }
+    .col-next-week .col-dot { background: #60a5fa; }
+    .col-init .col-dot { background: #a78bfa; }
+    .col-working .col-dot { background: var(--accent); }
+    .col-backlog .col-dot { background: #6b7280; }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #666; }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="brand">task<span>board</span></div>
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn-outline-accent" onclick="openModulesPanel()"><i class="bi bi-grid-3x3-gap me-1"></i>Modules</button>
+    <button class="btn-accent" onclick="openExportModal()"><i class="bi bi-file-earmark-word me-1"></i>Export Report</button>
+  </div>
+</div>
+
+<!-- BOARD -->
+<div id="board-wrapper">
+  <div class="column col-init" data-col="init">
+    <div class="col-header">
+      <div class="col-title"><div class="col-dot"></div> Init</div>
+      <span class="col-count" id="count-init">0</span>
+    </div>
+    <div class="col-body" id="col-init" ondrop="drop(event,'init')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+    <div style="padding:0 10px 12px"><button class="add-card-btn" onclick="openTaskModal(null,'init')"><i class="bi bi-plus"></i> Add task</button></div>
+  </div>
+
+  <div class="column col-working" data-col="working">
+    <div class="col-header">
+      <div class="col-title"><div class="col-dot"></div> Working Now</div>
+      <span class="col-count" id="count-working">0</span>
+    </div>
+    <div class="col-body" id="col-working" ondrop="drop(event,'working')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+    <div style="padding:0 10px 12px"><button class="add-card-btn" onclick="openTaskModal(null,'working')"><i class="bi bi-plus"></i> Add task</button></div>
+  </div>
+
+  <div class="column col-ready" data-col="ready">
+    <div class="col-header">
+      <div class="col-title"><div class="col-dot"></div> Ready <span style="font-size:.7rem;color:#4ade80;font-weight:400">(→ report)</span></div>
+      <span class="col-count" id="count-ready">0</span>
+    </div>
+    <div class="col-body" id="col-ready" ondrop="drop(event,'ready')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+    <div style="padding:0 10px 12px"><button class="add-card-btn" onclick="openTaskModal(null,'ready')"><i class="bi bi-plus"></i> Add task</button></div>
+  </div>
+
+  <div class="column col-next-week" data-col="next-week">
+    <div class="col-header">
+      <div class="col-title"><div class="col-dot"></div> Next Week <span style="font-size:.7rem;color:#60a5fa;font-weight:400">(→ report)</span></div>
+      <span class="col-count" id="count-next-week">0</span>
+    </div>
+    <div class="col-body" id="col-next-week" ondrop="drop(event,'next-week')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+    <div style="padding:0 10px 12px"><button class="add-card-btn" onclick="openTaskModal(null,'next-week')"><i class="bi bi-plus"></i> Add task</button></div>
+  </div>
+
+  <div class="column col-backlog" data-col="backlog">
+    <div class="col-header">
+      <div class="col-title"><div class="col-dot"></div> Backlog</div>
+      <span class="col-count" id="count-backlog">0</span>
+    </div>
+    <div class="col-body" id="col-backlog" ondrop="drop(event,'backlog')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+    <div style="padding:0 10px 12px"><button class="add-card-btn" onclick="openTaskModal(null,'backlog')"><i class="bi bi-plus"></i> Add task</button></div>
+  </div>
+</div>
+
+<!-- MODULES PANEL -->
+<div id="modules-panel">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h6 class="syne mb-0 fw-700" style="font-size:1rem">Modules</h6>
+    <button class="btn-outline-accent btn-sm" onclick="openModulesPanel()" style="padding:4px 10px;font-size:.75rem">✕ Close</button>
+  </div>
+  <div id="modules-list"></div>
+  <button class="btn-accent w-100 mt-2" onclick="openModuleModal()"><i class="bi bi-plus-circle me-1"></i>Add Module</button>
+</div>
+<div id="panel-overlay" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.4)" onclick="openModulesPanel()"></div>
+
+<!-- TASK MODAL -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="taskModalTitle">New Task</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Title *</label>
+            <input type="text" class="form-control" id="task-title" placeholder="Task title..." />
+          </div>
+          <div class="col-12">
+            <label class="form-label">Description <span style="color:#666;font-size:.75rem;text-transform:none">(Markdown supported)</span></label>
+            <textarea class="form-control" id="task-desc" rows="4" placeholder="Description in markdown..."></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Module</label>
+            <select class="form-select" id="task-module">
+              <option value="">— None —</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Deadline</label>
+            <input type="date" class="form-control" id="task-deadline" />
+          </div>
+          <div class="col-12">
+            <label class="form-label">Column</label>
+            <select class="form-select" id="task-column">
+              <option value="init">Init</option>
+              <option value="working">Working Now</option>
+              <option value="ready">Ready</option>
+              <option value="next-week">Next Week</option>
+              <option value="backlog">Backlog</option>
+            </select>
+          </div>
+
+          <!-- Steps -->
+          <div class="col-12">
+            <label class="form-label">Steps</label>
+            <div id="steps-list"></div>
+            <div class="d-flex gap-2 mt-1">
+              <input type="text" class="form-control form-control-sm" id="new-step-name" placeholder="New step name..." style="font-size:.83rem" onkeydown="if(event.key==='Enter'){addStep();event.preventDefault()}" />
+              <button class="btn-outline-accent btn-sm" onclick="addStep()" style="white-space:nowrap;padding:4px 12px">+ Step</button>
+            </div>
+          </div>
+
+          <!-- Images -->
+          <div class="col-12">
+            <label class="form-label">Images</label>
+            <input type="file" class="form-control" id="task-images-input" accept="image/*" multiple onchange="handleImageUpload(event)" />
+            <div class="image-preview-grid" id="images-preview"></div>
+          </div>
+
+          <!-- Mails -->
+          <div class="col-12">
+            <label class="form-label">Links / Mails</label>
+            <div id="mails-list"></div>
+            <div class="d-flex gap-2 mt-1">
+              <input type="text" class="form-control form-control-sm" id="new-mail-input" placeholder="https://..." style="font-size:.83rem" onkeydown="if(event.key==='Enter'){addMail();event.preventDefault()}" />
+              <button class="btn-outline-accent btn-sm" onclick="addMail()" style="white-space:nowrap;padding:4px 12px">+ Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn-accent" onclick="saveTask()">Save Task</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODULE MODAL -->
+<div class="modal fade" id="moduleModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="moduleModalTitle">New Module</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Name *</label>
+          <input type="text" class="form-control" id="module-name" placeholder="Module name..." />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Color</label>
+          <input type="color" class="form-control form-control-color w-100" id="module-color" value="#ffda6a" style="height:42px" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn-accent" onclick="saveModule()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Export Report</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Period</label>
+          <input type="text" class="form-control" id="export-period" placeholder="e.g. 01.04.2025 – 07.04.2025" />
+        </div>
+        <div id="export-info-area" class="mt-3 p-3 rounded" style="background:#1e1e1e;border:1px solid #333"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn-accent" onclick="doExport()"><i class="bi bi-download me-1"></i>Download .docx</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ===================== STATE =====================
+let state = { modules: [], tasks: [], steps: [] };
+let editingTaskId = null;
+let editingModuleId = null;
+let currentSteps = [];
+let currentImages = [];
+let currentMails = [];
+let draggedTaskId = null;
+
+const COLUMNS = ['init','working','ready','next-week','backlog'];
+
+// ===================== INIT =====================
+async function init() {
+  const res = await fetch('/api/data');
+  state = await res.json();
+  if (!state.modules) state.modules = [];
+  if (!state.tasks) state.tasks = [];
+  renderBoard();
+  renderModules();
+}
+
+// ===================== SAVE =====================
+async function saveState() {
+  await fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(state)
+  });
+}
+
+// ===================== RENDER BOARD =====================
+function renderBoard() {
+  COLUMNS.forEach(col => {
+    const el = document.getElementById('col-' + col);
+    const tasks = state.tasks.filter(t => t.column === col);
+    document.getElementById('count-' + col).textContent = tasks.length;
+    el.innerHTML = '';
+    tasks.forEach(task => {
+      el.appendChild(createTaskCard(task));
+    });
+  });
+}
+
+function createTaskCard(task) {
+  const module = state.modules.find(m => m.id === task.module);
+  const steps = task.steps || [];
+  const done = steps.filter(s => s.checked).length;
+  const progress = steps.length ? (done / steps.length) * 100 : 0;
+
+  const card = document.createElement('div');
+  card.className = 'task-card';
+  card.draggable = true;
+  card.dataset.id = task.id;
+  card.addEventListener('dragstart', dragStart);
+  card.addEventListener('dragend', dragEnd);
+
+  const descHtml = task.description ? marked.parse(task.description) : '';
+
+  card.innerHTML = `
+    ${module ? `<div class="card-module-tag" style="background:${module.color}22;color:${module.color}"><span style="width:7px;height:7px;border-radius:50%;background:${module.color};display:inline-block"></span>${module.name}</div>` : ''}
+    <div class="card-title">${escHtml(task.title)}</div>
+    ${task.description ? `<div class="card-desc">${descHtml}</div>` : ''}
+    <div class="card-meta">
+      ${task.deadline ? `<div class="card-deadline"><i class="bi bi-calendar3"></i>${task.deadline}</div>` : ''}
+      ${steps.length ? `<div class="card-steps-bar" title="${done}/${steps.length} steps"><div class="card-steps-bar-fill" style="width:${progress}%"></div></div>` : ''}
+      ${task.images && task.images.length ? `<span style="font-size:.7rem;color:#888"><i class="bi bi-image"></i> ${task.images.length}</span>` : ''}
+    </div>
+    <div class="card-actions">
+      <button onclick="openTaskModal('${task.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+      <button class="del-btn" onclick="deleteTask('${task.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+    </div>
+  `;
+  return card;
+}
+
+// ===================== DRAG & DROP =====================
+function dragStart(e) {
+  draggedTaskId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function dragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+}
+function allowDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+function drop(e, col) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedTaskId) return;
+  const task = state.tasks.find(t => t.id === draggedTaskId);
+  if (task) {
+    task.column = col;
+    saveState();
+    renderBoard();
+    toast(`Moved to "${colLabel(col)}"`);
+  }
+  draggedTaskId = null;
+}
+
+function colLabel(col) {
+  const labels = { init:'Init', working:'Working Now', ready:'Ready', 'next-week':'Next Week', backlog:'Backlog' };
+  return labels[col] || col;
+}
+
+// ===================== TASK MODAL =====================
+let taskModalBS = null;
+function openTaskModal(taskId, defaultCol) {
+  editingTaskId = taskId || null;
+  const task = taskId ? state.tasks.find(t => t.id === taskId) : null;
+
+  document.getElementById('taskModalTitle').textContent = task ? 'Edit Task' : 'New Task';
+  document.getElementById('task-title').value = task ? task.title : '';
+  document.getElementById('task-desc').value = task ? (task.description || '') : '';
+  document.getElementById('task-deadline').value = task ? (task.deadline || '') : '';
+
+  // Column select
+  const colSel = document.getElementById('task-column');
+  colSel.value = task ? task.column : (defaultCol || 'init');
+
+  // Module select
+  const modSel = document.getElementById('task-module');
+  modSel.innerHTML = '<option value="">— None —</option>';
+  state.modules.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name;
+    if (task && task.module === m.id) opt.selected = true;
+    modSel.appendChild(opt);
+  });
+
+  // Steps
+  currentSteps = task ? JSON.parse(JSON.stringify(task.steps || [])) : [];
+  renderStepsList();
+
+  // Images
+  currentImages = task ? JSON.parse(JSON.stringify(task.images || [])) : [];
+  renderImagesPreview();
+
+  // Mails
+  currentMails = task ? JSON.parse(JSON.stringify(task.mails || [])) : [];
+  renderMailsList();
+
+  if (!taskModalBS) taskModalBS = new bootstrap.Modal(document.getElementById('taskModal'));
+  taskModalBS.show();
+}
+
+function renderStepsList() {
+  const el = document.getElementById('steps-list');
+  el.innerHTML = '';
+  currentSteps.forEach((step, i) => {
+    const d = document.createElement('div');
+    d.className = 'step-item';
+    d.innerHTML = `
+      <input type="checkbox" ${step.checked ? 'checked' : ''} onchange="currentSteps[${i}].checked=this.checked" />
+      <span class="step-name">${escHtml(step.name)}</span>
+      <button class="del-step" onclick="currentSteps.splice(${i},1);renderStepsList()"><i class="bi bi-x"></i></button>
+    `;
+    el.appendChild(d);
+  });
+}
+
+function addStep() {
+  const inp = document.getElementById('new-step-name');
+  const name = inp.value.trim();
+  if (!name) return;
+  currentSteps.push({ name, checked: false });
+  inp.value = '';
+  renderStepsList();
+}
+
+function renderImagesPreview() {
+  const el = document.getElementById('images-preview');
+  el.innerHTML = '';
+  currentImages.forEach((url, i) => {
+    const d = document.createElement('div');
+    d.className = 'image-preview-item';
+    d.innerHTML = `
+      <img src="${url}" alt="img" />
+      <button class="remove-img" onclick="currentImages.splice(${i},1);renderImagesPreview()">✕</button>
+    `;
+    el.appendChild(d);
+  });
+}
+
+async function handleImageUpload(e) {
+  const files = Array.from(e.target.files);
+  for (const file of files) {
+    const fd = new FormData();
+    fd.append('image', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.url) currentImages.push(data.url);
+  }
+  renderImagesPreview();
+  e.target.value = '';
+}
+
+function renderMailsList() {
+  const el = document.getElementById('mails-list');
+  el.innerHTML = '';
+  currentMails.forEach((m, i) => {
+    const span = document.createElement('span');
+    span.className = 'mail-tag';
+    span.innerHTML = `<i class="bi bi-link-45deg"></i>${escHtml(m)} <button class="rm" onclick="currentMails.splice(${i},1);renderMailsList()">✕</button>`;
+    el.appendChild(span);
+  });
+}
+
+function addMail() {
+  const inp = document.getElementById('new-mail-input');
+  const val = inp.value.trim();
+  if (!val) return;
+  currentMails.push(val);
+  inp.value = '';
+  renderMailsList();
+}
+
+function saveTask() {
+  const title = document.getElementById('task-title').value.trim();
+  if (!title) { toast('Title is required', true); return; }
+
+  const taskData = {
+    title,
+    description: document.getElementById('task-desc').value,
+    module: document.getElementById('task-module').value,
+    deadline: document.getElementById('task-deadline').value,
+    column: document.getElementById('task-column').value,
+    steps: currentSteps,
+    images: currentImages,
+    mails: currentMails,
+  };
+
+  if (editingTaskId) {
+    const idx = state.tasks.findIndex(t => t.id === editingTaskId);
+    if (idx >= 0) state.tasks[idx] = { ...state.tasks[idx], ...taskData };
+  } else {
+    state.tasks.push({ id: genId(), ...taskData });
+  }
+
+  saveState();
+  renderBoard();
+  bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+  toast(editingTaskId ? 'Task updated' : 'Task created');
+}
+
+function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  saveState();
+  renderBoard();
+  toast('Task deleted');
+}
+
+// ===================== MODULES =====================
+let moduleModalBS = null;
+function openModulesPanel() {
+  const panel = document.getElementById('modules-panel');
+  const overlay = document.getElementById('panel-overlay');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  overlay.style.display = isOpen ? 'none' : 'block';
+}
+
+function renderModules() {
+  const el = document.getElementById('modules-list');
+  el.innerHTML = '';
+  state.modules.forEach(m => {
+    const d = document.createElement('div');
+    d.className = 'module-item';
+    d.innerHTML = `
+      <div class="module-color-dot" style="background:${m.color}"></div>
+      <div class="module-name">${escHtml(m.name)}</div>
+      <div class="d-flex gap-1">
+        <button class="task-card .card-actions button" style="background:#3a3a3a;border:none;color:#bbb;width:28px;height:28px;border-radius:6px;cursor:pointer" onclick="openModuleModal('${m.id}')"><i class="bi bi-pencil"></i></button>
+        <button style="background:#3a3a3a;border:none;color:#bbb;width:28px;height:28px;border-radius:6px;cursor:pointer" onclick="deleteModule('${m.id}')"><i class="bi bi-trash"></i></button>
+      </div>
+    `;
+    el.appendChild(d);
+  });
+}
+
+function openModuleModal(moduleId) {
+  editingModuleId = moduleId || null;
+  const mod = moduleId ? state.modules.find(m => m.id === moduleId) : null;
+  document.getElementById('moduleModalTitle').textContent = mod ? 'Edit Module' : 'New Module';
+  document.getElementById('module-name').value = mod ? mod.name : '';
+  document.getElementById('module-color').value = mod ? mod.color : '#ffda6a';
+  if (!moduleModalBS) moduleModalBS = new bootstrap.Modal(document.getElementById('moduleModal'));
+  moduleModalBS.show();
+}
+
+function saveModule() {
+  const name = document.getElementById('module-name').value.trim();
+  if (!name) { toast('Name required', true); return; }
+  const color = document.getElementById('module-color').value;
+  if (editingModuleId) {
+    const idx = state.modules.findIndex(m => m.id === editingModuleId);
+    if (idx >= 0) state.modules[idx] = { ...state.modules[idx], name, color };
+  } else {
+    state.modules.push({ id: genId(), name, color });
+  }
+  saveState();
+  renderModules();
+  renderBoard();
+  bootstrap.Modal.getInstance(document.getElementById('moduleModal')).hide();
+  toast(editingModuleId ? 'Module updated' : 'Module created');
+}
+
+function deleteModule(id) {
+  if (!confirm('Delete module? Tasks using it will lose their module.')) return;
+  state.modules = state.modules.filter(m => m.id !== id);
+  state.tasks.forEach(t => { if (t.module === id) t.module = ''; });
+  saveState();
+  renderModules();
+  renderBoard();
+  toast('Module deleted');
+}
+
+// ===================== EXPORT =====================
+let exportModalBS = null;
+function openExportModal() {
+  const ready = state.tasks.filter(t => t.column === 'ready').length;
+  const next = state.tasks.filter(t => t.column === 'next-week').length;
+  document.getElementById('export-info-area').innerHTML = `
+    <div>Tasks in <strong style="color:#4ade80">Ready</strong>: ${ready}</div>
+    <div>Tasks in <strong style="color:#60a5fa">Next Week</strong>: ${next}</div>
+    <div class="mt-2" style="font-size:.78rem;color:#666">These tasks will be included in the report. Tasks will remain on the board.</div>
+  `;
+  if (!exportModalBS) exportModalBS = new bootstrap.Modal(document.getElementById('exportModal'));
+  exportModalBS.show();
+}
+
+async function doExport() {
+  const employee = "Кожевников Ефим Алексеевич".trim();
+  const period = document.getElementById('export-period').value.trim();
+  try {
+    const res = await fetch('/api/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tasks: state.tasks, modules: state.modules, employee, period })
+    });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report_${new Date().toISOString().slice(0,10)}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+    toast('Report exported!');
+  } catch(err) {
+    toast('Export error: ' + err.message, true);
+  }
+}
+
+// ===================== UTILS =====================
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function toast(msg, isError) {
+  const c = document.getElementById('toast-container');
+  const d = document.createElement('div');
+  d.className = 'toast-msg';
+  if (isError) d.style.borderLeftColor = '#f87171';
+  d.textContent = msg;
+  c.appendChild(d);
+  setTimeout(() => d.remove(), 3000);
+}
+
+init();
+</script>
+</body>
+</html>
