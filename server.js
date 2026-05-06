@@ -36,29 +36,120 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   res.json({ url: '/uploads/' + req.file.filename });
 });
 
+// ── Format helpers ─────────────────────────────────────────────────────────
+function fmt(d) {
+  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getFullYear()).slice(2)}`;
+}
+function fmtLong(d) {
+  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+}
+
+// ── Fetch a single day from the kuzyak.in per-day endpoint ────────────────
+// Response shape: { isWorkingDay: bool, isShortDay: bool, holiday: string|null, ... }
+async function fetchDay(date) {
+  const y = date.getFullYear();
+  const m = date.getMonth() + 1;
+  const day = date.getDate();
+  try {
+    const r = await fetch(`https://calendar.kuzyak.in/api/calendar/${y}/${m}/${day}`);
+    if (!r.ok) return null;
+    return await r.json(); // { isWorkingDay, isShortDay, holiday, ... }
+  } catch {
+    return null;
+  }
+}
+
+// ── Core: fetch per-day data and compute smart working range ───────────────
+// Each day in returned `days` array has:
+//   { date, isWorking, isShortDay, holiday, dayName, dateStr }
+// rangeStr / rangeStrLong are trimmed to first→last working day of the week.
+async function computeWeekRange(offsetWeeks) {
+  const now = new Date();
+  const dow = now.getDay();
+  const diffToMon = dow === 0 ? -6 : 1 - dow;
+  const mon = new Date(now);
+  mon.setDate(now.getDate() + diffToMon + offsetWeeks * 7);
+  mon.setHours(0, 0, 0, 0);
+
+  // Mon–Fri Date objects
+  const weekDays = Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    return d;
+  });
+
+  // Fetch all 5 days in parallel
+  const apiResults = await Promise.all(weekDays.map(fetchDay));
+
+  // Annotate each day with clean fields
+  const days = weekDays.map((d, i) => {
+    const api = apiResults[i];
+    // If API returned data, trust isWorkingDay; otherwise assume working
+    const isWorking  = api ? api.isWorkingDay  : true;
+    const isShortDay = api ? (api.isShortDay || false) : false;
+    const holiday    = api ? (api.holiday || null) : null;
+
+    return {
+      date:      d,
+      dateStr:   fmtLong(d),
+      dayName:   ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][d.getDay()],
+      isWorking,
+      isShortDay,
+      holiday,   // e.g. "Праздник Весны и Труда" or null
+    };
+  });
+
+  const working = days.filter(d => d.isWorking);
+  const firstW  = working[0]                      || days[0];
+  const lastW   = working[working.length - 1]     || days[4];
+
+  return {
+    rangeStr:        `${fmt(firstW.date)}-${fmt(lastW.date)}`,
+    rangeStrLong:    `${fmtLong(firstW.date)} – ${fmtLong(lastW.date)}`,
+    workingCount:    working.length,
+    nonWorkingCount: days.length - working.length,
+    days,
+  };
+}
+
+// ── Proxy: expose week-range data to the frontend ──────────────────────────
+app.get('/api/week-range/:offset', async (req, res) => {
+  try {
+    const info = await computeWeekRange(parseInt(req.params.offset) || 0);
+    // Return serialisable version (no Date objects)
+    res.json({
+      ...info,
+      days: info.days.map(d => ({
+        dateStr:   d.dateStr,
+        dayName:   d.dayName,
+        isWorking: d.isWorking,
+        isShortDay: d.isShortDay,
+        holiday:   d.holiday,   // string like "Праздник Весны и Труда" or null
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Export ─────────────────────────────────────────────────────────────────
 app.post('/api/export', async (req, res) => {
   try {
-    const { tasks, modules, employee } = req.body;
+    const { tasks, modules, employee, periodOffset = 0 } = req.body;
     const readyTasks    = tasks.filter(t => t.column === 'ready');
     const nextWeekTasks = tasks.filter(t => t.column === 'next-week');
     const getModuleName = id => (modules.find(m => m.id === id) || {}).name || '';
 
-    function getWeekRange(offsetWeeks) {
-      const now = new Date();
-      const day = now.getDay();
-      const diffToMon = day === 0 ? -6 : 1 - day;
-      const mon = new Date(now);
-      mon.setDate(now.getDate() + diffToMon + offsetWeeks * 7);
-      const fri = new Date(mon);
-      fri.setDate(mon.getDate() + 4);
-      const fmt = d => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getFullYear()).slice(2)}`;
-      return `${fmt(mon)}-${fmt(fri)}`;
-    }
+    // Compute smart ranges in parallel
+    const [curWeek, nxtWeek] = await Promise.all([
+      computeWeekRange(periodOffset),
+      computeWeekRange(periodOffset + 1),
+    ]);
 
-    const currentWeekRange = getWeekRange(0);
-    const nextWeekRange    = getWeekRange(1);
     const font = 'Times New Roman';
-    const COL1 = 1463, COL2 = 8975, TOTAL = COL1 + COL2;
+    const CONTENT_W = 9355;
+    const COL1 = 1500;
+    const COL2 = CONTENT_W - COL1;
     const cm = { top: 80, bottom: 80, left: 120, right: 120 };
     const sb = { style: BorderStyle.SINGLE, size: 4, color: '999999' };
     const nb = { style: BorderStyle.NIL };
@@ -70,41 +161,35 @@ app.post('/api/export', async (req, res) => {
       if (!taskList.length) return [new Paragraph({ children: [] })];
       return taskList.map(task => {
         const mod = getModuleName(task.module);
-        let children = [new TextRun({ text: task.title, font, size: 26 })];
-        if (mod) {
-          children.unshift(new TextRun({ text: mod + " - ", font, size: 26, bold: true }))
-        }
+        const children = [new TextRun({ text: task.title, font, size: 26 })];
+        if (mod) children.unshift(new TextRun({ text: mod + ' - ', font, size: 26, bold: true }));
         return new Paragraph({ children });
       });
     }
 
     const reportTable = new Table({
-      width: { size: TOTAL, type: WidthType.DXA },
+      width: { size: CONTENT_W, type: WidthType.DXA },
       columnWidths: [COL1, COL2],
       rows: [
-        // Row 1: headers
         new TableRow({ children: [
           new TableCell({ borders: allB, shading: green, width: { size: COL1, type: WidthType.DXA }, margins: cm,
             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Дата', bold: true, font, size: 28 })] })] }),
           new TableCell({ borders: allB, shading: green, width: { size: COL2, type: WidthType.DXA }, margins: cm,
             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Выполненные задачи (% готовности)', bold: true, font, size: 28 })] })] }),
         ]}),
-        // Row 2: current week date | ready tasks
         new TableRow({ children: [
           new TableCell({ borders: allB, width: { size: COL1, type: WidthType.DXA }, margins: cm,
-            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: currentWeekRange, bold: true, font, size: 26 })] })] }),
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: curWeek.rangeStr, bold: true, font, size: 26 })] })] }),
           new TableCell({ borders: allB, width: { size: COL2, type: WidthType.DXA }, margins: cm,
             children: makeTasksParagraphs(readyTasks) }),
         ]}),
-        // Row 3: "План на следующую неделю" — merged full-width green header
         new TableRow({ children: [
-          new TableCell({ borders: allB, shading: green, width: { size: TOTAL, type: WidthType.DXA }, columnSpan: 2, margins: cm,
+          new TableCell({ borders: allB, shading: green, width: { size: CONTENT_W, type: WidthType.DXA }, columnSpan: 2, margins: cm,
             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'План на следующую неделю', bold: true, font, size: 28, color: '000000' })] })] }),
         ]}),
-        // Row 4: next week date | next-week tasks (no top border like template)
         new TableRow({ children: [
           new TableCell({ borders: noTop, width: { size: COL1, type: WidthType.DXA }, margins: cm,
-            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: nextWeekRange, font, size: 24 })] })] }),
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: nxtWeek.rangeStr, font, size: 24 })] })] }),
           new TableCell({ borders: noTop, width: { size: COL2, type: WidthType.DXA }, margins: cm,
             children: makeTasksParagraphs(nextWeekTasks) }),
         ]}),
@@ -115,7 +200,7 @@ app.post('/api/export', async (req, res) => {
       sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, right: 850, bottom: 1134, left: 1701 } } },
         children: [
           new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Недельный отчет о проделанной работе по дням', bold: true, size: 36, font })] }),
-          new Paragraph({ children: [new TextRun({ text: 'Период описанной работы: ', bold: true, size: 28, font }), new TextRun({ text: currentWeekRange, bold: true, size: 26, font })] }),
+          new Paragraph({ children: [new TextRun({ text: 'Период описанной работы: ', bold: true, size: 28, font }), new TextRun({ text: curWeek.rangeStr, bold: true, size: 26, font })] }),
           new Paragraph({ children: [new TextRun({ text: 'Сотрудник: ', bold: true, size: 28, font }), new TextRun({ text: employee || '', size: 28, font })] }),
           reportTable,
           new Paragraph({ children: [] }),

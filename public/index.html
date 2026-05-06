@@ -32,7 +32,7 @@
     }
     h1,h2,h3,h4,h5,.syne { font-family: 'Syne', sans-serif; }
 
-    /* TOPBAR */
+    /* ── TOPBAR (desktop only) ──────────────────────────────────────────── */
     #topbar {
       background: var(--dark-bg);
       border-bottom: 1px solid #3a3a3a;
@@ -54,6 +54,42 @@
     }
     #topbar .brand span { color: #fff; }
 
+    /* ── MOBILE BOTTOM BAR ──────────────────────────────────────────────── */
+    #bottombar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: #222;
+      border-top: 1px solid #3a3a3a;
+      z-index: 200;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 16px;
+    }
+    .bottombar-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: .65rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 10px;
+      transition: color .2s, background .2s;
+    }
+    .bottombar-btn i { font-size: 1.25rem; }
+    .bottombar-btn.accent { color: var(--accent); }
+    .bottombar-btn:active { background: #333; }
+
+    /* ── BUTTONS ────────────────────────────────────────────────────────── */
     .btn-accent {
       background: var(--accent);
       color: var(--dark-bg);
@@ -79,7 +115,7 @@
     }
     .btn-outline-accent:hover { background: var(--accent); color: var(--dark-bg); }
 
-    /* BOARD */
+    /* ── BOARD ──────────────────────────────────────────────────────────── */
     #board-wrapper {
       display: flex;
       gap: 16px;
@@ -112,10 +148,7 @@
       align-items: center;
       gap: 8px;
     }
-    .col-dot {
-      width: 9px; height: 9px;
-      border-radius: 50%;
-    }
+    .col-dot { width: 9px; height: 9px; border-radius: 50%; }
     .col-count {
       font-size: .75rem;
       background: #3a3a3a;
@@ -137,7 +170,7 @@
       border-radius: 10px;
     }
 
-    /* TASK CARD */
+    /* ── TASK CARD ──────────────────────────────────────────────────────── */
     .task-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -246,17 +279,14 @@
     }
     .add-card-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(255,218,106,.04); }
 
-    /* MODAL */
+    /* ── MODAL ──────────────────────────────────────────────────────────── */
     .modal-content {
       background: #272727;
       border: 1px solid #3a3a3a;
       border-radius: 16px;
       color: #f0f0f0;
     }
-    .modal-header {
-      border-bottom: 1px solid #3a3a3a;
-      padding: 18px 24px;
-    }
+    .modal-header { border-bottom: 1px solid #3a3a3a; padding: 18px 24px; }
     .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; }
     .modal-footer { border-top: 1px solid #3a3a3a; padding: 14px 24px; }
     .form-label {
@@ -284,69 +314,89 @@
     .form-control::placeholder { color: #555; }
     .form-select option { background: #2a2a2a; }
 
-    /* Steps manager */
+    /* ── STEPS (fix 5: nice checkbox styling) ────────────────────────────── */
     .step-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 7px 10px;
+      gap: 10px;
+      padding: 8px 12px;
       background: #1e1e1e;
       border-radius: 8px;
       margin-bottom: 6px;
       border: 1px solid #333;
+      transition: border-color .2s, background .2s;
     }
-    .step-item input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
-    .step-item .step-name { flex: 1; font-size: .85rem; }
-    .step-item .del-step { background: none; border: none; color: #666; cursor: pointer; padding: 2px; font-size: .85rem; }
-    .step-item .del-step:hover { color: #f88; }
-
-    /* Image preview */
-    .image-preview-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .image-preview-item {
-      position: relative;
-      width: 80px; height: 80px;
-    }
-    .image-preview-item img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid #3a3a3a;
-    }
-    .image-preview-item .remove-img {
-      position: absolute;
-      top: -5px; right: -5px;
-      background: #c0392b;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 18px; height: 18px;
-      font-size: .6rem;
-      display: flex; align-items: center; justify-content: center;
+    .step-item:hover { border-color: #555; background: #222; }
+    .step-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 17px;
+      height: 17px;
+      border-radius: 5px;
+      border: 2px solid #555;
+      background: #2a2a2a;
       cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+      transition: border-color .2s, background .2s;
+    }
+    .step-item input[type="checkbox"]:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .step-item input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      top: 1px;
+      left: 4px;
+      width: 5px;
+      height: 9px;
+      border: 2px solid #1a1a1a;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+    .step-item input[type="checkbox"]:hover:not(:checked) { border-color: var(--accent); }
+    .step-item .step-name {
+      flex: 1;
+      font-size: .85rem;
+      transition: color .2s, text-decoration .2s;
+    }
+    .step-item.done .step-name { color: #666; text-decoration: line-through; }
+    .step-item .del-step {
+      background: none;
+      border: none;
+      color: #444;
+      cursor: pointer;
+      padding: 2px 4px;
+      font-size: .85rem;
+      border-radius: 4px;
+      transition: color .2s, background .2s;
+    }
+    .step-item .del-step:hover { color: #f88; background: rgba(248,136,136,.1); }
+
+    /* ── IMAGE PREVIEW ──────────────────────────────────────────────────── */
+    .image-preview-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .image-preview-item { position: relative; width: 80px; height: 80px; }
+    .image-preview-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid #3a3a3a; }
+    .image-preview-item .remove-img {
+      position: absolute; top: -5px; right: -5px;
+      background: #c0392b; color: white; border: none; border-radius: 50%;
+      width: 18px; height: 18px; font-size: .6rem;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
 
-    /* Mail links */
+    /* ── MAIL LINKS ─────────────────────────────────────────────────────── */
     .mail-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: #1e1e1e;
-      border: 1px solid #3a3a3a;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: .78rem;
-      color: #a0c4ff;
-      margin: 3px;
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #1e1e1e; border: 1px solid #3a3a3a;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: .78rem; color: #a0c4ff; margin: 3px;
     }
     .mail-tag .rm { background: none; border: none; color: #666; cursor: pointer; padding: 0; font-size: .7rem; }
     .mail-tag .rm:hover { color: #f88; }
 
-    /* Modules sidebar */
+    /* ── MODULES PANEL ──────────────────────────────────────────────────── */
     #modules-panel {
       position: fixed;
       right: -340px;
@@ -362,37 +412,52 @@
     }
     #modules-panel.open { right: 0; }
     .module-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 10px 12px;
-      background: #2a2a2a;
-      border-radius: 10px;
-      margin-bottom: 8px;
-      border: 1px solid #333;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 10px 12px; background: #2a2a2a; border-radius: 10px; margin-bottom: 8px; border: 1px solid #333;
     }
     .module-color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
     .module-name { font-size: .88rem; font-weight: 600; flex: 1; font-family: 'Syne', sans-serif; }
 
-    /* Export modal */
+    /* ── EXPORT MODAL ───────────────────────────────────────────────────── */
     #export-info-area { font-size: .85rem; color: #aaa; }
 
-    /* Toast */
+    /* ── PERIOD SELECT (fix 4) ──────────────────────────────────────────── */
+    .period-option {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-radius: 8px;
+      border: 1.5px solid #333; background: #1e1e1e;
+      cursor: pointer; transition: border-color .2s, background .2s;
+      margin-bottom: 8px;
+    }
+    .period-option:hover { border-color: #555; background: #252525; }
+    .period-option.selected { border-color: var(--accent); background: rgba(255,218,106,.07); }
+    .period-option .period-label {
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: .88rem;
+    }
+    .period-option .period-dates { font-size: .78rem; color: #777; margin-top: 1px; }
+    .period-option .period-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid #555; flex-shrink: 0; transition: border-color .2s, background .2s;
+      margin-left: auto;
+    }
+    .period-option.selected .period-dot { border-color: var(--accent); background: var(--accent); }
+
+    /* Weekend badge */
+    .weekend-badge {
+      display: inline-block; font-size: .65rem; background: rgba(248,113,113,.15);
+      color: #f87171; border-radius: 4px; padding: 1px 5px; margin-left: 4px; font-weight: 600;
+    }
+
+    /* ── TOAST ──────────────────────────────────────────────────────────── */
     #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
     .toast-msg {
-      background: #2a2a2a;
-      border: 1px solid #444;
-      border-left: 3px solid var(--accent);
-      color: #f0f0f0;
-      padding: 12px 18px;
-      border-radius: 10px;
-      font-size: .85rem;
-      margin-top: 8px;
-      animation: slideIn .2s ease;
+      background: #2a2a2a; border: 1px solid #444; border-left: 3px solid var(--accent);
+      color: #f0f0f0; padding: 12px 18px; border-radius: 10px; font-size: .85rem;
+      margin-top: 8px; animation: slideIn .2s ease;
     }
     @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
+    /* column dot colours */
     .col-ready .col-dot { background: #4ade80; }
     .col-next-week .col-dot { background: #60a5fa; }
     .col-init .col-dot { background: #a78bfa; }
@@ -403,11 +468,53 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #666; }
+
+    /* ── MOBILE OVERRIDES (fix 6) ────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      #topbar { display: none; }
+      #bottombar { display: flex; }
+
+      /* panel starts just above bottom bar */
+      #modules-panel {
+        top: 0;
+        height: calc(100vh - 64px);
+        width: 100%;
+        right: -100%;
+      }
+      #modules-panel.open { right: 0; }
+
+      #board-wrapper {
+        padding: 12px 10px 80px; /* leave room for bottombar */
+        gap: 10px;
+        min-height: calc(100vh - 64px);
+      }
+
+      /* Horizontal scroll snapping for phone columns */
+      #board-wrapper {
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+      }
+      .column {
+        flex: 0 0 88vw;
+        width: 88vw;
+        max-height: calc(100vh - 140px);
+        scroll-snap-align: start;
+      }
+
+      /* Modals full-screen on mobile */
+      .modal-dialog { margin: 0; max-width: 100%; }
+      .modal-content { border-radius: 20px 20px 0 0; }
+      .modal-dialog.modal-lg { margin: 0; }
+      .modal { align-items: flex-end !important; }
+
+      #toast-container { bottom: 76px; right: 12px; }
+    }
   </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
+<!-- ── DESKTOP TOPBAR ───────────────────────────────────────────────────── -->
 <div id="topbar">
   <div class="brand">task<span>board</span></div>
   <div class="d-flex align-items-center gap-2">
@@ -416,7 +523,19 @@
   </div>
 </div>
 
-<!-- BOARD -->
+<!-- ── MOBILE BOTTOM BAR ─────────────────────────────────────────────────── -->
+<div id="bottombar">
+  <button class="bottombar-btn" onclick="openModulesPanel()">
+    <i class="bi bi-grid-3x3-gap"></i>
+    Modules
+  </button>
+  <button class="bottombar-btn accent" onclick="openExportModal()">
+    <i class="bi bi-file-earmark-word"></i>
+    Export
+  </button>
+</div>
+
+<!-- ── BOARD ─────────────────────────────────────────────────────────────── -->
 <div id="board-wrapper">
   <div class="column col-init" data-col="init">
     <div class="col-header">
@@ -464,7 +583,7 @@
   </div>
 </div>
 
-<!-- MODULES PANEL -->
+<!-- ── MODULES PANEL ─────────────────────────────────────────────────────── -->
 <div id="modules-panel">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h6 class="syne mb-0 fw-700" style="font-size:1rem">Modules</h6>
@@ -475,7 +594,7 @@
 </div>
 <div id="panel-overlay" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.4)" onclick="openModulesPanel()"></div>
 
-<!-- TASK MODAL -->
+<!-- ── TASK MODAL ────────────────────────────────────────────────────────── -->
 <div class="modal fade" id="taskModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
@@ -550,7 +669,7 @@
   </div>
 </div>
 
-<!-- MODULE MODAL -->
+<!-- ── MODULE MODAL ──────────────────────────────────────────────────────── -->
 <div class="modal fade" id="moduleModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
@@ -576,7 +695,7 @@
   </div>
 </div>
 
-<!-- EXPORT MODAL -->
+<!-- ── EXPORT MODAL ──────────────────────────────────────────────────────── -->
 <div class="modal fade" id="exportModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -585,10 +704,10 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label">Period</label>
-          <input type="text" class="form-control" id="export-period" placeholder="e.g. 01.04.2025 – 07.04.2025" />
-        </div>
+        <!-- Fix 4: period select cards instead of text input -->
+        <label class="form-label">Select Period</label>
+        <div id="period-options"></div>
+
         <div id="export-info-area" class="mt-3 p-3 rounded" style="background:#1e1e1e;border:1px solid #333"></div>
       </div>
       <div class="modal-footer">
@@ -611,6 +730,7 @@ let currentSteps = [];
 let currentImages = [];
 let currentMails = [];
 let draggedTaskId = null;
+let selectedPeriodOffset = 0; // 0=this week, -1=prev, 1=next
 
 const COLUMNS = ['init','working','ready','next-week','backlog'];
 
@@ -640,9 +760,7 @@ function renderBoard() {
     const tasks = state.tasks.filter(t => t.column === col);
     document.getElementById('count-' + col).textContent = tasks.length;
     el.innerHTML = '';
-    tasks.forEach(task => {
-      el.appendChild(createTaskCard(task));
-    });
+    tasks.forEach(task => el.appendChild(createTaskCard(task)));
   });
 }
 
@@ -684,30 +802,17 @@ function dragStart(e) {
   e.currentTarget.classList.add('dragging');
   e.dataTransfer.effectAllowed = 'move';
 }
-function dragEnd(e) {
-  e.currentTarget.classList.remove('dragging');
-}
-function allowDrop(e) {
-  e.preventDefault();
-  e.currentTarget.classList.add('drag-over');
-}
-function dragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
+function dragEnd(e) { e.currentTarget.classList.remove('dragging'); }
+function allowDrop(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
 function drop(e, col) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
   if (!draggedTaskId) return;
   const task = state.tasks.find(t => t.id === draggedTaskId);
-  if (task) {
-    task.column = col;
-    saveState();
-    renderBoard();
-    toast(`Moved to "${colLabel(col)}"`);
-  }
+  if (task) { task.column = col; saveState(); renderBoard(); toast(`Moved to "${colLabel(col)}"`); }
   draggedTaskId = null;
 }
-
 function colLabel(col) {
   const labels = { init:'Init', working:'Working Now', ready:'Ready', 'next-week':'Next Week', backlog:'Backlog' };
   return labels[col] || col;
@@ -724,30 +829,24 @@ function openTaskModal(taskId, defaultCol) {
   document.getElementById('task-desc').value = task ? (task.description || '') : '';
   document.getElementById('task-deadline').value = task ? (task.deadline || '') : '';
 
-  // Column select
   const colSel = document.getElementById('task-column');
   colSel.value = task ? task.column : (defaultCol || 'init');
 
-  // Module select
   const modSel = document.getElementById('task-module');
   modSel.innerHTML = '<option value="">— None —</option>';
   state.modules.forEach(m => {
     const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = m.name;
+    opt.value = m.id; opt.textContent = m.name;
     if (task && task.module === m.id) opt.selected = true;
     modSel.appendChild(opt);
   });
 
-  // Steps
   currentSteps = task ? JSON.parse(JSON.stringify(task.steps || [])) : [];
   renderStepsList();
 
-  // Images
   currentImages = task ? JSON.parse(JSON.stringify(task.images || [])) : [];
   renderImagesPreview();
 
-  // Mails
   currentMails = task ? JSON.parse(JSON.stringify(task.mails || [])) : [];
   renderMailsList();
 
@@ -755,17 +854,23 @@ function openTaskModal(taskId, defaultCol) {
   taskModalBS.show();
 }
 
+// Fix 5: nice styled step checkboxes
 function renderStepsList() {
   const el = document.getElementById('steps-list');
   el.innerHTML = '';
   currentSteps.forEach((step, i) => {
     const d = document.createElement('div');
-    d.className = 'step-item';
+    d.className = 'step-item' + (step.checked ? ' done' : '');
     d.innerHTML = `
-      <input type="checkbox" ${step.checked ? 'checked' : ''} onchange="currentSteps[${i}].checked=this.checked" />
-      <span class="step-name">${escHtml(step.name)}</span>
+      <input type="checkbox" id="step-cb-${i}" ${step.checked ? 'checked' : ''} />
+      <label for="step-cb-${i}" class="step-name" style="cursor:pointer">${escHtml(step.name)}</label>
       <button class="del-step" onclick="currentSteps.splice(${i},1);renderStepsList()"><i class="bi bi-x"></i></button>
     `;
+    // checkbox change handler
+    d.querySelector('input').addEventListener('change', function() {
+      currentSteps[i].checked = this.checked;
+      d.classList.toggle('done', this.checked);
+    });
     el.appendChild(d);
   });
 }
@@ -785,10 +890,7 @@ function renderImagesPreview() {
   currentImages.forEach((url, i) => {
     const d = document.createElement('div');
     d.className = 'image-preview-item';
-    d.innerHTML = `
-      <img src="${url}" alt="img" />
-      <button class="remove-img" onclick="currentImages.splice(${i},1);renderImagesPreview()">✕</button>
-    `;
+    d.innerHTML = `<img src="${url}" alt="img" /><button class="remove-img" onclick="currentImages.splice(${i},1);renderImagesPreview()">✕</button>`;
     el.appendChild(d);
   });
 }
@@ -829,7 +931,6 @@ function addMail() {
 function saveTask() {
   const title = document.getElementById('task-title').value.trim();
   if (!title) { toast('Title is required', true); return; }
-
   const taskData = {
     title,
     description: document.getElementById('task-desc').value,
@@ -840,16 +941,13 @@ function saveTask() {
     images: currentImages,
     mails: currentMails,
   };
-
   if (editingTaskId) {
     const idx = state.tasks.findIndex(t => t.id === editingTaskId);
     if (idx >= 0) state.tasks[idx] = { ...state.tasks[idx], ...taskData };
   } else {
     state.tasks.push({ id: genId(), ...taskData });
   }
-
-  saveState();
-  renderBoard();
+  saveState(); renderBoard();
   bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
   toast(editingTaskId ? 'Task updated' : 'Task created');
 }
@@ -857,9 +955,7 @@ function saveTask() {
 function deleteTask(id) {
   if (!confirm('Delete this task?')) return;
   state.tasks = state.tasks.filter(t => t.id !== id);
-  saveState();
-  renderBoard();
-  toast('Task deleted');
+  saveState(); renderBoard(); toast('Task deleted');
 }
 
 // ===================== MODULES =====================
@@ -882,7 +978,7 @@ function renderModules() {
       <div class="module-color-dot" style="background:${m.color}"></div>
       <div class="module-name">${escHtml(m.name)}</div>
       <div class="d-flex gap-1">
-        <button class="task-card .card-actions button" style="background:#3a3a3a;border:none;color:#bbb;width:28px;height:28px;border-radius:6px;cursor:pointer" onclick="openModuleModal('${m.id}')"><i class="bi bi-pencil"></i></button>
+        <button style="background:#3a3a3a;border:none;color:#bbb;width:28px;height:28px;border-radius:6px;cursor:pointer" onclick="openModuleModal('${m.id}')"><i class="bi bi-pencil"></i></button>
         <button style="background:#3a3a3a;border:none;color:#bbb;width:28px;height:28px;border-radius:6px;cursor:pointer" onclick="deleteModule('${m.id}')"><i class="bi bi-trash"></i></button>
       </div>
     `;
@@ -910,9 +1006,7 @@ function saveModule() {
   } else {
     state.modules.push({ id: genId(), name, color });
   }
-  saveState();
-  renderModules();
-  renderBoard();
+  saveState(); renderModules(); renderBoard();
   bootstrap.Modal.getInstance(document.getElementById('moduleModal')).hide();
   toast(editingModuleId ? 'Module updated' : 'Module created');
 }
@@ -921,34 +1015,135 @@ function deleteModule(id) {
   if (!confirm('Delete module? Tasks using it will lose their module.')) return;
   state.modules = state.modules.filter(m => m.id !== id);
   state.tasks.forEach(t => { if (t.module === id) t.module = ''; });
-  saveState();
-  renderModules();
-  renderBoard();
-  toast('Module deleted');
+  saveState(); renderModules(); renderBoard(); toast('Module deleted');
+}
+
+// ===================== WEEK RANGE (server-driven) =====================
+// Cache keyed by offset so we don't re-fetch on every click
+const weekRangeCache = {};
+
+async function fetchWeekRange(offset) {
+  if (weekRangeCache[offset]) return weekRangeCache[offset];
+  try {
+    const r = await fetch(`/api/week-range/${offset}`);
+    const data = r.ok ? await r.json() : null;
+    if (data) weekRangeCache[offset] = data;
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 // ===================== EXPORT =====================
 let exportModalBS = null;
-function openExportModal() {
+
+// Render period cards. Each card fetches real trimmed range from server.
+// While loading shows skeleton, then updates in place.
+async function buildPeriodOptions() {
+  const options = [
+    { offset: -1, label: 'Прошлая неделя' },
+    { offset:  0, label: 'Эта неделя' },
+    { offset:  1, label: 'Следующая неделя' },
+  ];
+  const container = document.getElementById('period-options');
+  container.innerHTML = '';
+
+  options.forEach(opt => {
+    const div = document.createElement('div');
+    div.className = 'period-option' + (opt.offset === selectedPeriodOffset ? ' selected' : '');
+    div.dataset.offset = opt.offset;
+    div.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div class="period-label">${opt.label}</div>
+        <div class="period-dates" id="period-dates-${opt.offset}" style="color:#555">загрузка…</div>
+        <div class="period-days" id="period-days-${opt.offset}" style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap"></div>
+      </div>
+      <div class="period-dot"></div>
+    `;
+    div.addEventListener('click', () => {
+      selectedPeriodOffset = opt.offset;
+      container.querySelectorAll('.period-option').forEach(el => {
+        el.classList.toggle('selected', parseInt(el.dataset.offset) === selectedPeriodOffset);
+        el.querySelector('.period-dot').style.background = parseInt(el.dataset.offset) === selectedPeriodOffset ? 'var(--accent)' : '';
+        el.querySelector('.period-dot').style.borderColor = parseInt(el.dataset.offset) === selectedPeriodOffset ? 'var(--accent)' : '#555';
+      });
+    });
+    container.appendChild(div);
+
+    // Fetch real data and fill in
+    fetchWeekRange(opt.offset).then(data => {
+      const datesEl = document.getElementById(`period-dates-${opt.offset}`);
+      const daysEl  = document.getElementById(`period-days-${opt.offset}`);
+      if (!datesEl) return;
+
+      if (!data) {
+        datesEl.textContent = 'нет данных';
+        datesEl.style.color = '#555';
+        return;
+      }
+
+      // Date range — trimmed to working days
+      datesEl.textContent = data.rangeStrLong;
+      datesEl.style.color = '#777';
+
+      // Mini day pills: Пн Вт Ср Чт Пт
+      // colours: red = holiday (non-working), orange = short day, grey = normal working
+      daysEl.innerHTML = data.days.map(d => {
+        let bg, color, strike;
+        if (!d.isWorking) {
+          bg = 'rgba(248,113,113,.18)'; color = '#f87171'; strike = true;
+        } else if (d.isShortDay) {
+          bg = 'rgba(251,191,36,.18)';  color = '#fbbf24'; strike = false;
+        } else {
+          bg = 'rgba(255,255,255,.06)'; color = '#888';    strike = false;
+        }
+        const tooltip = d.holiday
+          ? `${d.dateStr} — ${d.holiday}`
+          : d.isShortDay
+            ? `${d.dateStr} — сокращённый день`
+            : d.dateStr;
+        return `<span title="${tooltip}" style="
+          font-size:.65rem;font-family:'Syne',sans-serif;font-weight:700;
+          padding:2px 7px;border-radius:4px;cursor:default;
+          background:${bg};color:${color};
+          text-decoration:${strike ? 'line-through' : 'none'};
+        ">${d.dayName}</span>`;
+      }).join('');
+
+      // Warn if non-working days found
+      if (data.nonWorkingCount > 0) {
+        datesEl.innerHTML += ` <span style="font-size:.7rem;color:#f87171">(-${data.nonWorkingCount} вых.)</span>`;
+      }
+    });
+  });
+}
+
+async function openExportModal() {
+  selectedPeriodOffset = 0;
+  // Clear cache so fresh data loads each time modal opens
+  Object.keys(weekRangeCache).forEach(k => delete weekRangeCache[k]);
+
   const ready = state.tasks.filter(t => t.column === 'ready').length;
-  const next = state.tasks.filter(t => t.column === 'next-week').length;
+  const next  = state.tasks.filter(t => t.column === 'next-week').length;
+
   document.getElementById('export-info-area').innerHTML = `
-    <div>Tasks in <strong style="color:#4ade80">Ready</strong>: ${ready}</div>
-    <div>Tasks in <strong style="color:#60a5fa">Next Week</strong>: ${next}</div>
-    <div class="mt-2" style="font-size:.78rem;color:#666">These tasks will be included in the report. Tasks will remain on the board.</div>
+    <div>Задач в <strong style="color:#4ade80">Ready</strong>: ${ready}</div>
+    <div>Задач в <strong style="color:#60a5fa">Next Week</strong>: ${next}</div>
   `;
+
+  buildPeriodOptions(); // async, fills in data as it arrives
+
   if (!exportModalBS) exportModalBS = new bootstrap.Modal(document.getElementById('exportModal'));
   exportModalBS.show();
 }
 
 async function doExport() {
-  const employee = "Кожевников Ефим Алексеевич".trim();
-  const period = document.getElementById('export-period').value.trim();
+  const employee = "Кожевников Ефим Алексеевич";
   try {
     const res = await fetch('/api/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tasks: state.tasks, modules: state.modules, employee, period })
+      body: JSON.stringify({ tasks: state.tasks, modules: state.modules, employee, periodOffset: selectedPeriodOffset })
     });
     if (!res.ok) throw new Error('Export failed');
     const blob = await res.blob();
@@ -966,9 +1161,7 @@ async function doExport() {
 }
 
 // ===================== UTILS =====================
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
-}
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function escHtml(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
